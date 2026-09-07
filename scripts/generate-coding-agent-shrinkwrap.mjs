@@ -11,6 +11,7 @@ const codingAgentDir = join(repoRoot, "packages/coding-agent");
 const rootLockfilePath = join(repoRoot, "package-lock.json");
 const shrinkwrapPath = join(codingAgentDir, "npm-shrinkwrap.json");
 const internalPackagePrefix = "@earendil-works/pi-";
+const internalPackageNames = new Set(["@earendil-works/chord"]);
 const allowedInstallScriptPackages = DEFAULT_ALLOWED_INSTALL_SCRIPT_PACKAGES;
 
 const args = new Set(process.argv.slice(2));
@@ -134,7 +135,7 @@ function getInternalWorkspaces(lockPackages) {
 		if (!lockPath.startsWith("packages/") || lockPath.includes("/node_modules/") || !entry.name || !entry.version) {
 			continue;
 		}
-		if (!entry.name.startsWith(internalPackagePrefix)) {
+		if (!entry.name.startsWith(internalPackagePrefix) && !internalPackageNames.has(entry.name)) {
 			continue;
 		}
 
