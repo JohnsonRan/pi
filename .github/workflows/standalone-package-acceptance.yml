@@ -17,14 +17,30 @@ jobs:
     if: github.ref == 'refs/heads/validate/embedded-bun-npm'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    env:
+      PI_ACCEPTANCE_SOURCE_SHA: eb918d4e0561bda99e1b5aee6bb252f22eb018ea
+    defaults:
+      run:
+        shell: bash
+        working-directory: candidate-source
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Check out exact PR source separately from the CI companion
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: JohnsonRan/pi
+          ref: ${{ env.PI_ACCEPTANCE_SOURCE_SHA }}
+          path: candidate-source
+          persist-credentials: false
+      - name: Verify exact PR source
+        run: test "$(git rev-parse HEAD)" = "$PI_ACCEPTANCE_SOURCE_SHA"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: candidate-source/package-lock.json
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: "0.15.2"
@@ -42,30 +58,37 @@ jobs:
       - name: Check source and focused regressions
         run: |
           npm run check
-          node --test scripts/smoke-standalone-packages.test.mjs
+          node --test "$GITHUB_WORKSPACE/scripts/smoke-standalone-packages.test.mjs"
           cd packages/coding-agent
           node ../../node_modules/vitest/dist/cli.js --run test/package-manager.test.ts test/package-manager-ssh.test.ts
       - name: Build one Linux candidate with the official runtime
         run: |
           set -euo pipefail
           {
+            test "$(git rev-parse HEAD)" = "$PI_ACCEPTANCE_SOURCE_SHA"
+            git rev-parse HEAD
             test -s native/pi-wrapper.c
             test -s packages/tui/native/linux/prebuilds/linux-x64/linux-platform-x11.node
             sha256sum native/pi-wrapper.c packages/tui/native/linux/prebuilds/linux-x64/linux-platform-x11.node
             npm run build:offline
             export BUN_COMPILE_EXECUTABLE_PATH="$(command -v bun)"
-            version=$(node -p 'require("./packages/coding-agent/package.json").version + "-xz.validation.g" + process.env.GITHUB_SHA.slice(0, 8)')
+            version=$(node -p 'require("./packages/coding-agent/package.json").version + "-xz.validation.g" + process.env.PI_ACCEPTANCE_SOURCE_SHA.slice(0, 8)')
             scripts/build-binaries.sh --skip-install --skip-build --platform linux-x64-gnu-modern --out "$RUNNER_TEMP/candidate" --distribution-version "$version"
             sha256sum "$BUN_COMPILE_EXECUTABLE_PATH" "$RUNNER_TEMP/candidate/linux-x64-gnu-modern/pi-native" "$RUNNER_TEMP/candidate/linux-x64-gnu-modern/pi"
             git diff --exit-code
           } 2>&1 | tee "$RUNNER_TEMP/standalone-build.log"
+      - name: Check integration tests that require built workspace exports
+        run: |
+          node --test scripts/generate-third-party-notices.test.mjs
+          cd packages/coding-agent
+          node ../../node_modules/vitest/dist/cli.js --run test/package-command-paths.test.ts test/suite/managed-tool-executions.test.ts
       - name: Exercise public package management and installed extensions
-        run: node scripts/smoke-standalone-packages.mjs "$RUNNER_TEMP/candidate/linux-x64-gnu-modern" "$RUNNER_TEMP/package-acceptance"
+        run: node "$GITHUB_WORKSPACE/scripts/smoke-standalone-packages.mjs" "$RUNNER_TEMP/candidate/linux-x64-gnu-modern" "$RUNNER_TEMP/package-acceptance"
       - name: Preserve candidate and acceptance evidence, including failures
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: standalone-packages-${{ github.sha }}-${{ github.run_attempt }}
+          name: standalone-packages-${{ env.PI_ACCEPTANCE_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/standalone-build.log
             ${{ runner.temp }}/candidate/pi-linux-x64-gnu-modern.zip
