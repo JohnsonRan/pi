@@ -1,0 +1,68 @@
+name: Standalone package acceptance (non-publishing)
+
+on:
+  push:
+    branches: [validate/embedded-bun-npm]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standalone-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-packages:
+    if: github.ref == 'refs/heads/validate/embedded-bun-npm'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: "0.15.2"
+      # Validation only: use the official release, not the historical local patched runtime.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Prepare sandbox tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap libxcb1
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: npm ci --ignore-scripts
+      - run: npm run hydrate:model-data
+      - name: Check source and focused regressions
+        run: |
+          npm run check
+          node --test scripts/smoke-standalone-packages.test.mjs
+          cd packages/coding-agent
+          node ../../node_modules/vitest/dist/cli.js --run test/package-manager.test.ts test/package-manager-ssh.test.ts
+      - name: Build one Linux candidate with the official runtime
+        run: |
+          npm run build:offline
+          export BUN_COMPILE_EXECUTABLE_PATH="$(command -v bun)"
+          version=$(node -p 'require("./packages/coding-agent/package.json").version + "-xz.validation.g" + process.env.GITHUB_SHA.slice(0, 8)')
+          scripts/build-binaries.sh --skip-install --skip-build --platform linux-x64-gnu-modern --out "$RUNNER_TEMP/candidate" --distribution-version "$version"
+          sha256sum "$BUN_COMPILE_EXECUTABLE_PATH" "$RUNNER_TEMP/candidate/linux-x64-gnu-modern/pi-native" "$RUNNER_TEMP/candidate/linux-x64-gnu-modern/pi"
+          git diff --exit-code
+      - name: Exercise public package management and installed extensions
+        run: node scripts/smoke-standalone-packages.mjs "$RUNNER_TEMP/candidate/linux-x64-gnu-modern" "$RUNNER_TEMP/package-acceptance"
+      - name: Preserve candidate and acceptance evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: standalone-packages-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/candidate/pi-linux-x64-gnu-modern.zip
+            ${{ runner.temp }}/package-acceptance
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
