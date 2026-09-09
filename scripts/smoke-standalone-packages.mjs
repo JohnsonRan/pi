@@ -45,7 +45,7 @@ function main() {
 	fs.cpSync(bundle, path.join(root, "bundle"), { recursive: true });
 	fs.cpSync(new URL("fixtures/standalone-packages/", import.meta.url), path.join(root, "fixtures"), { recursive: true });
 	const sha = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-	const receipt = { source: process.env.GITHUB_SHA, pins, binarySha256: sha(path.join(root, "bundle/pi-native")), wrapperSha256: sha(path.join(root, "bundle/pi")), checks: [], coreComplete: false };
+	const receipt = { source: process.env.PI_ACCEPTANCE_SOURCE_SHA, workflowSource: process.env.GITHUB_SHA, pins, binarySha256: sha(path.join(root, "bundle/pi-native")), wrapperSha256: sha(path.join(root, "bundle/pi")), checks: [], coreComplete: false };
 	const run = (name, command, args, { network = false, bun = false, cwd } = {}) => {
 		const sandbox = sandboxArguments(root, network);
 		if (bun) sandbox.push("--setenv", "BUN_BE_BUN", "1");
