@@ -9,7 +9,6 @@ case "$(uname -m)" in
 	*) echo "Unsupported FreeBSD architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 export RUNNER_OS=FreeBSD RUNNER_ARCH=$runner_arch PI_XZ_EXECUTOR=freebsd-vm NODE_ENV=production
-bun_version=$(node --input-type=module -e 'import { BUN_VERSION } from "./scripts/lib/bun-targets.mjs"; console.log(BUN_VERSION)')
 # Emulated guests (QEMU TCG) get the same scaled budgets as smoke-binary-release.mjs.
 interactive_ms=$(node --input-type=module -e 'import { smokeLimits } from "./scripts/lib/bun-targets.mjs"; console.log(smokeLimits(process.argv[1]).interactiveMs)' "$target")
 export PI_XZ_E2E_TIMEOUT_MS=$(node --input-type=module -e 'import { EMULATED_SMOKE_SLOWDOWN, bunTarget } from "./scripts/lib/bun-targets.mjs"; console.log(120000 * (bunTarget(process.argv[1]).emulated ? EMULATED_SMOKE_SLOWDOWN : 1))' "$target")
@@ -22,7 +21,7 @@ cleanup() {
 	rm -rf "$work"
 }
 trap cleanup EXIT
-curl -fL --retry 3 "https://github.com/oven-sh/bun/releases/download/bun-v$bun_version/$bun_asset.zip" -o "$work/bun.zip"
+curl -fL --retry 3 "https://github.com/oven-sh/bun/releases/latest/download/$bun_asset.zip" -o "$work/bun.zip"
 unzip -q "$work/bun.zip" -d "$work"
 export PATH="$work/$bun_asset:$PATH"
 npm ci --ignore-scripts --include=dev

@@ -157,7 +157,6 @@ const source = (name, pin) => `git:github.com/xz-dev/${name}@${pin}`;
 try {
   receipt.version = (await run("version", ["--version"])).trim();
   receipt.bunVersion = (await run("bun-version", ["--version"], { env: { BUN_BE_BUN: "1" } })).trim();
-  assert.equal(receipt.bunVersion, "1.4.2");
   receipt.plugins = [];
   for (const [name, pin] of pins) {
     await run(`install-${name}`, ["install", source(name, pin)]);

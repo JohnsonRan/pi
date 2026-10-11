@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import * as path from "node:path";
 import test from "node:test";
-import { BUN_BUILD_FLAGS, BUN_TARGET_IDS, BUN_TARGETS, BUN_VERSION, EMULATED_SMOKE_SLOWDOWN, GITHUB_HOSTED_RUNNERS, RELEASE_BUILD, SMOKE_LIMITS, binaryArchiveName, bunBuildFlags, githubBuildMatrix, githubSmokeMatrix, isMainModulePath, smokeLimits } from "./lib/bun-targets.mjs";
+import { BUN_BUILD_FLAGS, BUN_TARGET_IDS, BUN_TARGETS, EMULATED_SMOKE_SLOWDOWN, GITHUB_HOSTED_RUNNERS, RELEASE_BUILD, SMOKE_LIMITS, binaryArchiveName, bunBuildFlags, githubBuildMatrix, githubSmokeMatrix, isMainModulePath, smokeLimits } from "./lib/bun-targets.mjs";
 
 const EXPECTED = [
 	"freebsd-x64", "freebsd-arm64",
@@ -62,7 +62,6 @@ test("authoritative Bun target descriptors contain the exact supported matrix", 
 });
 
 test("release compiler settings and smoke descriptors cover every target", () => {
-	assert.equal(BUN_VERSION, "1.4.2");
 	assert.deepEqual(BUN_BUILD_FLAGS, ["--minify", "--bytecode", "--format=esm"]);
 	assert.equal(RELEASE_BUILD.bytecode, true);
 	assert.match(RELEASE_BUILD.bytecodeReason, /ESM bytecode/);
