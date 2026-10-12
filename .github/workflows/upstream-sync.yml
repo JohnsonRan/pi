@@ -39,7 +39,6 @@ jobs:
             +refs/heads/patch/model-refresh-session-rebind:refs/remotes/origin/patch/model-refresh-session-rebind \
             +refs/heads/patch/startup-benchmark-exit:refs/remotes/origin/patch/startup-benchmark-exit \
             +refs/heads/patch/freebsd-support:refs/remotes/origin/patch/freebsd-support \
-            +refs/heads/patch/chord-websocket-test-deps:refs/remotes/origin/patch/chord-websocket-test-deps \
             +refs/heads/patch/single-executable:refs/remotes/origin/patch/single-executable \
             +refs/heads/patch/agent-run-failure-seam:refs/remotes/origin/patch/agent-run-failure-seam \
             +refs/heads/patch/managed-tool-executions:refs/remotes/origin/patch/managed-tool-executions \
@@ -82,7 +81,6 @@ jobs:
             model-refresh-session-rebind \
             startup-benchmark-exit \
             freebsd-support \
-            chord-websocket-test-deps \
             single-executable \
             agent-run-failure-seam \
             managed-tool-executions \

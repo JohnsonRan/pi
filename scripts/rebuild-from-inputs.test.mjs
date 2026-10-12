@@ -404,24 +404,22 @@ test("recovery prerequisites replay as ordered ranges while presentation remains
 	}
 });
 
-test("shared Chord test prerequisite integrates once for both runtime consumers", () => {
+test("upstream websocket declarations support independent consumers without duplicate repair input", () => {
 	const fixture = buildFixture();
-	const deps = fixture.file("deps.txt", "websocket test deps\n", "deps", "patch/chord-websocket-test-deps");
-	fixture.file("deps.txt", "websocket test deps\nportable entry\n", "portable", "patch/single-executable", "patch/chord-websocket-test-deps");
-	const single = fixture.file("binary.txt", "surviving build steps\n", "follow-up", "patch/single-executable", "patch/single-executable");
-	const thinking = fixture.file("thinking.txt", "surviving thinking preview\n", "thinking", "patch/thinking-preview", "patch/chord-websocket-test-deps");
+	const deps = JSON.stringify({ devDependencies: { "@types/ws": "8.18.2", ws: "8.21.0" } });
+	const upstream = fixture.file("packages/chord/package.json", deps, "upstream websocket declarations", "upstream-main");
+	const single = fixture.file("binary.txt", "portable entry\n", "single", "patch/single-executable");
+	const thinking = fixture.file("thinking.txt", "thinking preview\n", "thinking", "patch/thinking-preview");
 	const { target } = replay(fixture, [
-		"--upstream", fixture.upstream, "--ci", fixture.ci,
-		"--patch", `thinking-preview=${thinking}`,
-		"--patch", `single-executable=${single}`,
-		"--patch", `chord-websocket-test-deps=${deps}`,
+		"--upstream", upstream, "--ci", fixture.ci,
+		"--patch", `thinking-preview=${thinking}`, "--patch", `single-executable=${single}`,
 	]);
 	try {
-		assert.equal(readFileSync(join(target, "deps.txt"), "utf8"), "websocket test deps\nportable entry\n");
-		assert.equal(readFileSync(join(target, "binary.txt"), "utf8"), "surviving build steps\n");
-		assert.equal(readFileSync(join(target, "thinking.txt"), "utf8"), "surviving thinking preview\n");
+		assert.equal(readFileSync(join(target, "packages/chord/package.json"), "utf8"), deps);
+		assert.equal(readFileSync(join(target, "binary.txt"), "utf8"), "portable entry\n");
+		assert.equal(readFileSync(join(target, "thinking.txt"), "utf8"), "thinking preview\n");
 		assert.deepEqual(log(target), [
-			"base", "merge ci branch", "merge patch/chord-websocket-test-deps branch",
+			"base", "upstream websocket declarations", "merge ci branch",
 			"merge patch/single-executable branch", "merge patch/thinking-preview branch",
 			"record upstream sync inputs (diagnostic subset)",
 		]);
@@ -430,26 +428,37 @@ test("shared Chord test prerequisite integrates once for both runtime consumers"
 	}
 });
 
-for (const consumer of ["single-executable", "thinking-preview"]) {
-	test(`${consumer} cannot enter a complete replay without the Chord prerequisite input`, () => {
+for (const diagnostic of [false, true]) {
+	test(`retired test-dependency input is rejected (diagnostic=${diagnostic})`, () => {
 		const fixture = buildFixture();
-		const order = readFileSync(SCRIPT, "utf8").match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
-		const args = ["--upstream", fixture.upstream, "--ci", fixture.ci];
-		for (const name of order) {
-			if (name !== "chord-websocket-test-deps") args.push("--patch", `${name}=${name === consumer ? fixture.aaa : fixture.upstream}`);
-		}
 		try {
-			const { out } = replay(fixture, args, { expectFail: true, diagnostic: false });
-			assert.match(out, /missing explicit input patch\/chord-websocket-test-deps/);
+			const { out } = replay(fixture, [
+				"--upstream", fixture.upstream, "--ci", fixture.ci,
+				"--patch", `chord-websocket-test-deps=${fixture.upstream}`,
+			], { expectFail: true, diagnostic });
+			assert.match(out, /unknown patch input name: chord-websocket-test-deps/);
 		} finally {
 			cleanup(fixture);
 		}
 	});
 }
 
+for (const consumer of ["single-executable", "thinking-preview"]) {
+	test(`${consumer} still rejects an empty integration`, () => {
+		const fixture = buildFixture();
+		const { target, out } = replay(fixture, [
+			"--upstream", fixture.upstream, "--ci", fixture.ci,
+			"--patch", `${consumer}=${fixture.upstream}`,
+		], { expectFail: true });
+		try {
+			assert.ok(out.includes(`Empty patch integration for merge patch/${consumer} branch`));
+		} finally {
+			cleanup(fixture, target);
+		}
+	});
+}
+
 for (const [ancestor, descendant] of [
-	["chord-websocket-test-deps", "single-executable"],
-	["chord-websocket-test-deps", "thinking-preview"],
 	["slow-hook-tui-only", "defer-threshold-compaction"],
 	["defer-threshold-compaction", "startup-submit-readiness"],
 	["startup-submit-readiness", "cold-start-retry"],
