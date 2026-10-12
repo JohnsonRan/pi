@@ -35,12 +35,12 @@ Manual and automatic retry of interrupted work, plus transport-level recovery.
 - Continue from the nearest protocol-safe conversation boundary with `/retry` or RPC `retry`, preserving superseded history as an append-only sibling branch, retaining completed tool results, and synthesizing explicit unknown-outcome errors only for missing results without replaying old tool calls.
   - Use case: Resume after Pi or its provider was interrupted, without replaying completed tool calls.
   - Patch branch: [`patch/manual-retry`](https://github.com/xz-dev/pi/tree/patch/manual-retry)
-- Recover once on interactive cold startup, such as `pi -c` or `pi --session`, when the current conversation tail has a safe retry boundary and no new input takes priority. Old sessions and exhausted-error tails can recover without a `started` record. Pending recovery shows `This session will automatically run /retry shortly.`; otherwise idle retryable sessions show a dim `/retry` hint, clickable in fullscreen with `(click to run)`.
+- Recover once on interactive cold startup, such as `pi -c` or `pi --session`, when an unfinished working run has a safe retryable conversation tail and no new input takes priority. Closed runs and sessions without run records remain manual-only; older run records derive working flags from their state. Pending recovery shows `This session will automatically run /retry shortly.`; otherwise idle retryable sessions show a dim `/retry` hint, clickable in fullscreen with `(click to run)`.
   - Use case: Continue interrupted work after restarting Pi, or click the hint to retry manually without losing an editor draft.
   - Limits: Explicit user cancellation, natural completion, and output-limit endings do not auto-recover; in-process `/resume` does not trigger recovery. New input takes priority, including during authentication. Esc or Ctrl+C cancels pending recovery durably, and startup navigation cannot redirect it to another branch. Runtime error-retry limits and backoff are unchanged. Concurrent writers to one session file and exactly-once external tool effects are not guaranteed.
   - Details: [Interrupted work](../packages/coding-agent/docs/sessions.md#retry-interrupted-work)
   - Patch branch: [`patch/cold-start-retry`](https://github.com/xz-dev/pi/tree/patch/cold-start-retry)
-- Keep input in the editor until interactive startup has bound the session and rendered its history. An early Enter shows `Startup is still in progress`; press Enter again after startup to submit `/retry` or an ordinary prompt. Custom editors receive the same submit handler.
+- Keep input in the editor until interactive startup has bound the session and rendered its history. An early Enter shows `Session is still starting`; press Enter again after startup to submit `/retry` or an ordinary prompt. Custom editors receive the same submit handler.
   - Use case: Press `/retry` immediately after `pi -c` without losing the native Working indication when the resumed response streams.
   - Patch branch: [`patch/startup-submit-readiness`](https://github.com/xz-dev/pi/tree/patch/startup-submit-readiness)
 - Recover Codex WebSocket transport after transient failures, then resume incremental context instead of leaving the session permanently on SSE.
@@ -58,8 +58,8 @@ Manual and automatic retry of interrupted work, plus transport-level recovery.
 - Send the full request instead of a cached OpenAI Codex Responses WebSocket continuation when the input delta is empty.
   - Use case: Retry an unchanged request without reusing a stale continuation that contains no new input.
   - Patch branch: [`patch/ws-cached-empty-delta`](https://github.com/xz-dev/pi/tree/patch/ws-cached-empty-delta)
-- Show transient assistant connection failures as recovery attempts while Pi's global retry policy runs, instead of copying the same provider error into every unexecuted tool preview. A successful retry continues normally; exhausted retries, non-retryable errors, and cancellation remain visible without pretending the previewed tools executed.
-  - Use case: Recover from a Responses WebSocket disconnect after tool calls have started streaming without seeing a separate false failure for each tool. Cancelling during retry backoff remains visible after transcript redraw or session resume; its saved display record never enters model context.
+- Show assistant provider errors immediately while Pi's global retry policy runs, without copying the same error into every unexecuted tool preview. Errors remain visible after a successful retry and transcript reconstruction; exhausted retries, non-retryable errors, and cancellation remain visible without pretending the previewed tools executed.
+  - Use case: See why a Responses WebSocket request is retrying without seeing a separate false failure for each tool. Cancelling during retry backoff remains visible after transcript redraw or session resume; its saved display record never enters model context.
   - Limits: This changes interactive error presentation, not retry classification, attempt limits, backoff, transport fallback, or real tool execution results.
   - Patch branch: [`patch/retry-error-presentation`](https://github.com/xz-dev/pi/tree/patch/retry-error-presentation)
 - [earendil-works/pi#6234](https://github.com/earendil-works/pi/issues/6234): make Esc abort recover from lifecycle hooks, extension hooks, provider setup, provider streams, or listener dispatch that never settle.
@@ -86,9 +86,9 @@ Presentation-only changes: layout, selectors, thinking display, startup screen.
 - Hide `[Skill conflicts]` / `[Prompt conflicts]` / `[Extension issues]` / `[Theme conflicts]` startup diagnostic blocks by default; enable them with `showStartupDiagnostics: true` in `settings.json`.
   - Use case: Keep the startup screen clean unless actively debugging resource conflicts or extension loading issues.
   - Patch branch: [`patch/slow-hook-tui-only`](https://github.com/xz-dev/pi/tree/patch/slow-hook-tui-only)
-- Show a `Model: old → new` indicator in the message list after switching models, keeping it visible at the bottom until the first response from the new model arrives.
+- Show a `Model: old → new` indicator in the message list after switching models, settling it in place to `Model: new` when the next request starts. Reselecting the same model adds no indicator.
   - Use case: See that a model switch is deferred to the next request instead of wondering why the footer already shows the new model while the old one is still answering.
-  - Patch branch: [`patch/pending-model-switch-indicator`](https://github.com/xz-dev/pi/tree/patch/pending-model-switch-indicator)
+  - Patch branch: [`patch/message-origin`](https://github.com/xz-dev/pi/tree/patch/message-origin)
 
 ## Models and providers
 

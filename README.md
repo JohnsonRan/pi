@@ -53,7 +53,7 @@ Features:
 Fixes:
 
 - Esc now aborts stuck hooks and streams ([#6234](https://github.com/earendil-works/pi/issues/6234))
-- Retry errors no longer spam fake tool failures
+- Provider errors stay visible during retries without fake tool failures
 - Model picker fits small screens and phone keyboards
 - No wasted summary after a finished answer
 - Models from extensions load before startup

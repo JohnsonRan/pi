@@ -44,7 +44,6 @@ jobs:
             +refs/heads/patch/managed-tool-executions:refs/remotes/origin/patch/managed-tool-executions \
             +refs/heads/patch/esc-abort:refs/remotes/origin/patch/esc-abort \
             +refs/heads/patch/manual-retry:refs/remotes/origin/patch/manual-retry \
-            +refs/heads/patch/startup-submit-readiness:refs/remotes/origin/patch/startup-submit-readiness \
             +refs/heads/patch/skill-overrides:refs/remotes/origin/patch/skill-overrides \
             +refs/heads/patch/retry-non-retryable-patterns:refs/remotes/origin/patch/retry-non-retryable-patterns \
             +refs/heads/patch/slow-hook-tui-only:refs/remotes/origin/patch/slow-hook-tui-only \
@@ -55,6 +54,7 @@ jobs:
             +refs/heads/patch/quarantine-auth-storage-flake:refs/remotes/origin/patch/quarantine-auth-storage-flake \
             +refs/heads/patch/env-overrides:refs/remotes/origin/patch/env-overrides \
             +refs/heads/patch/defer-threshold-compaction:refs/remotes/origin/patch/defer-threshold-compaction \
+            +refs/heads/patch/startup-submit-readiness:refs/remotes/origin/patch/startup-submit-readiness \
             +refs/heads/patch/cold-start-retry:refs/remotes/origin/patch/cold-start-retry \
             +refs/heads/patch/compact-input-dock:refs/remotes/origin/patch/compact-input-dock \
             +refs/heads/patch/responsive-selectors:refs/remotes/origin/patch/responsive-selectors \
@@ -86,7 +86,6 @@ jobs:
             managed-tool-executions \
             esc-abort \
             manual-retry \
-            startup-submit-readiness \
             skill-overrides \
             retry-non-retryable-patterns \
             slow-hook-tui-only \
@@ -97,6 +96,7 @@ jobs:
             quarantine-auth-storage-flake \
             env-overrides \
             defer-threshold-compaction \
+            startup-submit-readiness \
             cold-start-retry \
             compact-input-dock \
             responsive-selectors \
@@ -241,7 +241,8 @@ jobs:
             cd packages/coding-agent
             node ../../node_modules/vitest/dist/cli.js --run \
               test/suite/message-origin.test.ts \
-              test/message-origin-rendering.test.ts
+              test/message-origin-rendering.test.ts \
+              test/interactive-model-switch-indicator.test.ts
           )
           # This cross-patch test requires both refresh-selection and responsive-selectors.
           node node_modules/vitest/dist/cli.js --run \

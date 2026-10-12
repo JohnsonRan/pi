@@ -373,16 +373,59 @@ test("Codex recovery rejects a tip without its retry-patterns predecessor", () =
 	}
 });
 
-test("cold-start retry follows its lifecycle and startup-input prerequisites", () => {
-	const script = readFileSync(SCRIPT, "utf8");
-	const order = script.match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
-	const coldStart = order.indexOf("cold-start-retry");
-	assert.ok(coldStart >= 0);
-	for (const prerequisite of ["startup-submit-readiness", "defer-threshold-compaction"]) {
-		assert.ok(order.indexOf(prerequisite) >= 0 && order.indexOf(prerequisite) < coldStart);
+test("recovery prerequisites replay as ordered ranges while presentation remains independent", () => {
+	const fixture = buildFixture();
+	const names = ["slow-hook-tui-only", "defer-threshold-compaction", "startup-submit-readiness", "cold-start-retry", "message-origin"];
+	let predecessor = "upstream-main";
+	let content = "";
+	const args = ["--upstream", fixture.upstream, "--ci", fixture.ci];
+	for (const name of names) {
+		content += `${name}\n`;
+		const branch = `patch/${name}`;
+		const tip = fixture.file("recovery.txt", content, name, branch, predecessor);
+		args.push("--patch", `${name}=${tip}`);
+		predecessor = branch;
 	}
-	assert.match(script, /^\s*defer-threshold-compaction:cold-start-retry$/m);
+	const presentation = fixture.file("presentation.txt", "visible errors\n", "presentation", "patch/retry-error-presentation");
+	args.push("--patch", `retry-error-presentation=${presentation}`);
+	const { target } = replay(fixture, args);
+	try {
+		assert.equal(readFileSync(join(target, "recovery.txt"), "utf8"), content);
+		assert.equal(readFileSync(join(target, "presentation.txt"), "utf8"), "visible errors\n");
+		assert.deepEqual(log(target), [
+			"base", "merge ci branch",
+			...names.slice(0, -1).map((name) => `merge patch/${name} branch`),
+			"merge patch/retry-error-presentation branch",
+			"merge patch/message-origin branch",
+			"record upstream sync inputs (diagnostic subset)",
+		]);
+	} finally {
+		cleanup(fixture, target);
+	}
 });
+
+for (const [ancestor, descendant] of [
+	["slow-hook-tui-only", "defer-threshold-compaction"],
+	["defer-threshold-compaction", "startup-submit-readiness"],
+	["startup-submit-readiness", "cold-start-retry"],
+	["cold-start-retry", "message-origin"],
+]) {
+	test(`${descendant} rejects a tip missing ${ancestor}`, () => {
+		const fixture = buildFixture();
+		const predecessor = fixture.file("predecessor.txt", "prerequisite\n", ancestor, `patch/${ancestor}`);
+		const bad = fixture.file("descendant.txt", "missing prerequisite\n", descendant, `patch/${descendant}`);
+		const { target, out } = replay(fixture, [
+			"--upstream", fixture.upstream, "--ci", fixture.ci,
+			"--patch", `${ancestor}=${predecessor}`,
+			"--patch", `${descendant}=${bad}`,
+		], { expectFail: true });
+		try {
+			assert.ok(out.includes(`patch/${descendant} must descend from patch/${ancestor}`));
+		} finally {
+			cleanup(fixture, target);
+		}
+	});
+}
 
 test("--check passes when the workflow fetch list matches the recorded inputs", () => {
 	let status = 0;

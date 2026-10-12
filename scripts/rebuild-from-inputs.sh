@@ -112,7 +112,6 @@ PATCH_ORDER=(
 	managed-tool-executions
 	esc-abort
 	manual-retry
-	startup-submit-readiness
 	skill-overrides
 	retry-non-retryable-patterns
 	slow-hook-tui-only
@@ -124,6 +123,7 @@ PATCH_ORDER=(
 	env-overrides
 	freebsd-support
 	defer-threshold-compaction
+	startup-submit-readiness
 	cold-start-retry
 	compact-input-dock
 	responsive-selectors
@@ -147,7 +147,8 @@ CHAIN_EDGES=(
 	manual-retry:slow-hook-tui-only
 	retry-non-retryable-patterns:codex-websocket-recovery
 	slow-hook-tui-only:defer-threshold-compaction
-	defer-threshold-compaction:cold-start-retry
+	defer-threshold-compaction:startup-submit-readiness
+	startup-submit-readiness:cold-start-retry
 	cold-start-retry:message-origin
 	compact-input-dock:responsive-selectors
 )
