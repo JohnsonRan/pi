@@ -404,7 +404,30 @@ test("recovery prerequisites replay as ordered ranges while presentation remains
 	}
 });
 
+test("single executable applies its full range once after Chord test dependencies", () => {
+	const fixture = buildFixture();
+	const deps = fixture.file("deps.txt", "websocket test deps\n", "deps", "patch/chord-websocket-test-deps");
+	fixture.file("deps.txt", "websocket test deps\nportable entry\n", "portable", "patch/single-executable", "patch/chord-websocket-test-deps");
+	const single = fixture.file("binary.txt", "surviving build steps\n", "follow-up", "patch/single-executable", "patch/single-executable");
+	const { target } = replay(fixture, [
+		"--upstream", fixture.upstream, "--ci", fixture.ci,
+		"--patch", `single-executable=${single}`,
+		"--patch", `chord-websocket-test-deps=${deps}`,
+	]);
+	try {
+		assert.equal(readFileSync(join(target, "deps.txt"), "utf8"), "websocket test deps\nportable entry\n");
+		assert.equal(readFileSync(join(target, "binary.txt"), "utf8"), "surviving build steps\n");
+		assert.deepEqual(log(target), [
+			"base", "merge ci branch", "merge patch/chord-websocket-test-deps branch",
+			"merge patch/single-executable branch", "record upstream sync inputs (diagnostic subset)",
+		]);
+	} finally {
+		cleanup(fixture, target);
+	}
+});
+
 for (const [ancestor, descendant] of [
+	["chord-websocket-test-deps", "single-executable"],
 	["slow-hook-tui-only", "defer-threshold-compaction"],
 	["defer-threshold-compaction", "startup-submit-readiness"],
 	["startup-submit-readiness", "cold-start-retry"],

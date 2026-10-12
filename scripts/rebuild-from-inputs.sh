@@ -107,6 +107,7 @@ PATCH_ORDER=(
 	model-refresh
 	model-refresh-session-rebind
 	startup-benchmark-exit
+	chord-websocket-test-deps
 	single-executable
 	agent-run-failure-seam
 	managed-tool-executions
@@ -141,6 +142,7 @@ PATCH_ORDER=(
 # the two patches share. Rebase cascades down the chain when the predecessor
 # is rebased.
 CHAIN_EDGES=(
+	chord-websocket-test-deps:single-executable
 	agent-run-failure-seam:managed-tool-executions
 	managed-tool-executions:esc-abort
 	esc-abort:manual-retry

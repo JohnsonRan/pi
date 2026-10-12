@@ -233,7 +233,7 @@ For this installation, `pi update --self` never runs a package-manager update an
 
 Release CI signs accepted candidates before self-update acceptance on native, offline musl, and FreeBSD runners; publication waits for these update gates. Signature-gated update acceptance and publication run only on `refs/heads/main`. A non-main `workflow_dispatch` can build and smoke-test, but cannot pass the main-only release identity policy and therefore skips those signed-update/publication jobs.
 
-See [`MAINTAIN.md`](MAINTAIN.md) for the authoritative downstream branch ownership, rebuild, publication, recovery, and patch-retirement rules.
+See [`MAINTAIN.md`](MAINTAIN.md) for the authoritative downstream branch ownership, rebuild, publication, recovery, and patch-retirement rules. The test-only [`patch/chord-websocket-test-deps`](https://github.com/xz-dev/pi/tree/patch/chord-websocket-test-deps) supplies pinned websocket test dependencies before the dependent single-executable patch; it adds no runtime feature.
 
 Twice daily, [Upstream Sync](https://github.com/xz-dev/pi/actions/workflows/upstream-sync.yml) rebuilds `main` from the latest `https://github.com/earendil-works/pi.git` `main`, then integrates the maintenance overlay, feature and fix branches, and temporary compatibility branches in a fixed order:
 
