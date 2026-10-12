@@ -199,6 +199,12 @@ jobs:
             cd packages/chord
             node ../../node_modules/vitest/dist/cli.js --run test/websocket.test.ts
           )
+          (
+            cd packages/coding-agent
+            node ../../node_modules/vitest/dist/cli.js --run \
+              test/assistant-message.test.ts \
+              test/suite/regressions/thinking-preview-display.test.ts
+          )
           npx vitest run \
             packages/coding-agent/test/extensions-discovery.test.ts \
             --testNamePattern 'loads the coding-agent entrypoint without rewriting pi-ai provider subpaths' \

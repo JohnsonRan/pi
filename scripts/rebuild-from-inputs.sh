@@ -143,6 +143,7 @@ PATCH_ORDER=(
 # is rebased.
 CHAIN_EDGES=(
 	chord-websocket-test-deps:single-executable
+	chord-websocket-test-deps:thinking-preview
 	agent-run-failure-seam:managed-tool-executions
 	managed-tool-executions:esc-abort
 	esc-abort:manual-retry

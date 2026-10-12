@@ -404,30 +404,52 @@ test("recovery prerequisites replay as ordered ranges while presentation remains
 	}
 });
 
-test("single executable applies its full range once after Chord test dependencies", () => {
+test("shared Chord test prerequisite integrates once for both runtime consumers", () => {
 	const fixture = buildFixture();
 	const deps = fixture.file("deps.txt", "websocket test deps\n", "deps", "patch/chord-websocket-test-deps");
 	fixture.file("deps.txt", "websocket test deps\nportable entry\n", "portable", "patch/single-executable", "patch/chord-websocket-test-deps");
 	const single = fixture.file("binary.txt", "surviving build steps\n", "follow-up", "patch/single-executable", "patch/single-executable");
+	const thinking = fixture.file("thinking.txt", "surviving thinking preview\n", "thinking", "patch/thinking-preview", "patch/chord-websocket-test-deps");
 	const { target } = replay(fixture, [
 		"--upstream", fixture.upstream, "--ci", fixture.ci,
+		"--patch", `thinking-preview=${thinking}`,
 		"--patch", `single-executable=${single}`,
 		"--patch", `chord-websocket-test-deps=${deps}`,
 	]);
 	try {
 		assert.equal(readFileSync(join(target, "deps.txt"), "utf8"), "websocket test deps\nportable entry\n");
 		assert.equal(readFileSync(join(target, "binary.txt"), "utf8"), "surviving build steps\n");
+		assert.equal(readFileSync(join(target, "thinking.txt"), "utf8"), "surviving thinking preview\n");
 		assert.deepEqual(log(target), [
 			"base", "merge ci branch", "merge patch/chord-websocket-test-deps branch",
-			"merge patch/single-executable branch", "record upstream sync inputs (diagnostic subset)",
+			"merge patch/single-executable branch", "merge patch/thinking-preview branch",
+			"record upstream sync inputs (diagnostic subset)",
 		]);
 	} finally {
 		cleanup(fixture, target);
 	}
 });
 
+for (const consumer of ["single-executable", "thinking-preview"]) {
+	test(`${consumer} cannot enter a complete replay without the Chord prerequisite input`, () => {
+		const fixture = buildFixture();
+		const order = readFileSync(SCRIPT, "utf8").match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
+		const args = ["--upstream", fixture.upstream, "--ci", fixture.ci];
+		for (const name of order) {
+			if (name !== "chord-websocket-test-deps") args.push("--patch", `${name}=${name === consumer ? fixture.aaa : fixture.upstream}`);
+		}
+		try {
+			const { out } = replay(fixture, args, { expectFail: true, diagnostic: false });
+			assert.match(out, /missing explicit input patch\/chord-websocket-test-deps/);
+		} finally {
+			cleanup(fixture);
+		}
+	});
+}
+
 for (const [ancestor, descendant] of [
 	["chord-websocket-test-deps", "single-executable"],
+	["chord-websocket-test-deps", "thinking-preview"],
 	["slow-hook-tui-only", "defer-threshold-compaction"],
 	["defer-threshold-compaction", "startup-submit-readiness"],
 	["startup-submit-readiness", "cold-start-retry"],
