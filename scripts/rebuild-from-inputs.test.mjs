@@ -544,6 +544,8 @@ test("native workflow gate binds daemon metadata to build targets and keeps Darw
 	assert.ok(workflow.includes("PI_ENV_DAEMON_TARGET: ${{ matrix.name }}"));
 	assert.ok(workflow.includes("PI_ENV_DAEMON_TARGET: darwin-arm64"));
 	assert.ok(workflow.includes("run: softwareupdate --install-rosetta --agree-to-license"));
+	assert.ok(workflow.indexOf('PI_ENV_DAEMON="$daemon" npx vitest --run') < workflow.indexOf("Reject a wrong Darwin daemon target oracle"));
+	assert.equal((workflow.match(/--reporter=verbose --disableConsoleIntercept/g) ?? []).length, 2);
 	assert.ok(workflow.includes("assert.equal(run.status, 1);"));
 	assert.ok(workflow.includes("assert.equal(oracle[0].status, 'failed');"));
 	const sync = readFileSync(join(ROOT, ".github/workflows/upstream-sync.yml"), "utf8");
