@@ -143,8 +143,8 @@ Extension tooling, skills, and subprocess environment.
 
 Patches with no direct user-facing surface: test stability, fork CI plumbing, benchmark bounds.
 
-- Diagnose native environment tests with a build-target architecture oracle and monotonic observations of the original cold listing cancellation/recovery experiment.
-  - Limits: Observations do not prove REQUEST/CANCEL transmission or child exit. The original 5000ms deadline, 10,100-entry workload, daemon aborted error and both same-connection recovery assertions remain mandatory.
+- Diagnose native environment tests with an independent build-target architecture oracle, retained-output tool fixtures, per-stream output equality, real foreground-job readiness and monotonic cold listing cancellation/recovery observations.
+  - Limits: Listing setup preserves all 10,100 entries and has its own measured 60000ms bound; the cold daemon request, actual aborted error and both same-connection recoveries retain their separate 5000ms operation deadline. Foreground readiness retains 100 polls at 20ms and the 20000ms case deadline. Independent stdout/stderr arrival order is not an equality oracle; exact content per stream, successful tool results, missing-file rejection and nonzero exit remain checked. Darwin wrong-target JSON exposes actual child status and selected failures only after strict equality-rejection checks. Observations do not prove REQUEST/CANCEL transmission or child exit.
   - Patch branch: [`patch/env-native-test-fixtures`](https://github.com/xz-dev/pi/tree/patch/env-native-test-fixtures)
 - Make the coalesced-reload auth-storage test deterministic by writing a different-size payload, so mtime-tick collisions cannot make the reader take the stale cached path.
   - Patch branch: [`patch/quarantine-auth-storage-flake`](https://github.com/xz-dev/pi/tree/patch/quarantine-auth-storage-flake)
