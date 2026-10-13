@@ -131,6 +131,7 @@ PATCH_ORDER=(
 	retry-error-presentation
 	message-origin
 	model-thinking-sort
+	env-native-test-fixtures
 )
 
 # Dependent chains: the descendant patch must keep the predecessor patch tip

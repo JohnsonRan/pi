@@ -443,7 +443,7 @@ for (const diagnostic of [false, true]) {
 	});
 }
 
-for (const consumer of ["single-executable", "thinking-preview"]) {
+for (const consumer of ["single-executable", "thinking-preview", "env-native-test-fixtures"]) {
 	test(`${consumer} still rejects an empty integration`, () => {
 		const fixture = buildFixture();
 		const { target, out } = replay(fixture, [
@@ -491,4 +491,66 @@ test("--check passes when the workflow fetch list matches the recorded inputs", 
 		err = String(error.stderr ?? "");
 	}
 	assert.equal(status, 0, err);
+});
+
+test("native fixture owner is independent, countable and last without changing unrelated owners", () => {
+	const fixture = buildFixture();
+	const overrides = fixture.file("locale.txt", "locale\n", "locale", "patch/env-overrides");
+	const freebsd = fixture.file("freebsd.txt", "freebsd\n", "freebsd", "patch/freebsd-support");
+	fixture.file("packages/env/test/daemon.ts", "target oracle\n", "oracle", "patch/env-native-test-fixtures");
+	const native = fixture.file("packages/env/test/remote.test.ts", "native observations\n", "observations", "patch/env-native-test-fixtures", "patch/env-native-test-fixtures");
+	const { target } = replay(fixture, [
+		"--upstream", fixture.upstream, "--ci", fixture.ci,
+		"--patch", `env-native-test-fixtures=${native}`,
+		"--patch", `freebsd-support=${freebsd}`,
+		"--patch", `env-overrides=${overrides}`,
+	]);
+	try {
+		assert.deepEqual(log(target), ["base", "merge ci branch", "merge patch/env-overrides branch", "merge patch/freebsd-support branch", "merge patch/env-native-test-fixtures branch", "record upstream sync inputs (diagnostic subset)"]);
+		assert.equal(readFileSync(join(target, "locale.txt"), "utf8"), "locale\n");
+		assert.equal(readFileSync(join(target, "freebsd.txt"), "utf8"), "freebsd\n");
+		assert.equal(fixture.run(`git merge-base ${native} ${fixture.upstream}`).trim(), fixture.upstream);
+		assert.deepEqual(execSync('git diff --name-only HEAD~2 HEAD~1', { cwd: target, encoding: "utf8" }).trim().split("\n"), ["packages/env/test/daemon.ts", "packages/env/test/remote.test.ts"]);
+	} finally {
+		cleanup(fixture, target);
+	}
+});
+
+test("complete vectors require the native fixture owner", () => {
+	const fixture = buildFixture();
+	const order = readFileSync(SCRIPT, "utf8").match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
+	try {
+		const { out } = replay(fixture, [
+			"--upstream", fixture.upstream, "--ci", fixture.ci,
+			...order.filter(name => name !== "env-native-test-fixtures").flatMap(name => ["--patch", `${name}=${fixture.upstream}`]),
+		], { expectFail: true, diagnostic: false });
+		assert.match(out, /missing explicit input patch\/env-native-test-fixtures/);
+	} finally {
+		cleanup(fixture);
+	}
+});
+
+test("native workflow gate binds daemon metadata to build targets and keeps Darwin red control", () => {
+	const workflow = readFileSync(join(ROOT, ".github/workflows/env.yml"), "utf8");
+	const builds = readFileSync(join(ROOT, ".github/workflows/env-daemons.yml"), "utf8");
+	for (const [name, target] of [
+		["linux-x64", "x86_64-unknown-linux-musl"], ["linux-arm64", "aarch64-unknown-linux-musl"],
+		["darwin-x64", "x86_64-apple-darwin"], ["darwin-arm64", "aarch64-apple-darwin"],
+		["windows-x64", "x86_64-pc-windows-msvc"], ["windows-arm64", "aarch64-pc-windows-msvc"],
+	]) {
+		assert.ok(builds.includes(`target: ${target}, name: ${name}`));
+		assert.ok(workflow.includes(`name: ${name} }`));
+	}
+	assert.ok(workflow.includes("PI_ENV_DAEMON_TARGET: ${{ matrix.name }}"));
+	assert.ok(workflow.includes("PI_ENV_DAEMON_TARGET: darwin-arm64"));
+	assert.ok(workflow.includes("run: softwareupdate --install-rosetta --agree-to-license"));
+	assert.ok(workflow.includes("assert.equal(run.status, 1);"));
+	assert.ok(workflow.includes("assert.equal(oracle[0].status, 'failed');"));
+	const sync = readFileSync(join(ROOT, ".github/workflows/upstream-sync.yml"), "utf8");
+	assert.ok(sync.includes("refs/heads/patch/env-native-test-fixtures:refs/remotes/origin/patch/env-native-test-fixtures"));
+	assert.ok(sync.includes("            env-native-test-fixtures \\\n"));
+	const order = readFileSync(SCRIPT, "utf8").match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
+	assert.equal(order.length, 28);
+	assert.equal(order.at(-1), "env-native-test-fixtures");
+	assert.ok(readFileSync(join(ROOT, "docs/downstream-changes.md"), "utf8").includes("patch/env-native-test-fixtures"));
 });

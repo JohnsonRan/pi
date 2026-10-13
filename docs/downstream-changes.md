@@ -143,6 +143,9 @@ Extension tooling, skills, and subprocess environment.
 
 Patches with no direct user-facing surface: test stability, fork CI plumbing, benchmark bounds.
 
+- Diagnose native environment tests with a build-target architecture oracle and monotonic observations of the original cold listing cancellation/recovery experiment.
+  - Limits: Observations do not prove REQUEST/CANCEL transmission or child exit. The original 5000ms deadline, 10,100-entry workload, daemon aborted error and both same-connection recovery assertions remain mandatory.
+  - Patch branch: [`patch/env-native-test-fixtures`](https://github.com/xz-dev/pi/tree/patch/env-native-test-fixtures)
 - Make the coalesced-reload auth-storage test deterministic by writing a different-size payload, so mtime-tick collisions cannot make the reader take the stale cached path.
   - Patch branch: [`patch/quarantine-auth-storage-flake`](https://github.com/xz-dev/pi/tree/patch/quarantine-auth-storage-flake)
 - Bound and report startup benchmarks: emit synchronous startup stage/completion markers, exit benchmark runs without waiting on arbitrary handles, and bound fd/rg version probes.
