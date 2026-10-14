@@ -148,7 +148,8 @@ CHAIN_EDGES=(
 	managed-tool-executions:esc-abort
 	esc-abort:manual-retry
 	manual-retry:slow-hook-tui-only
-	retry-non-retryable-patterns:codex-websocket-recovery
+	retry-non-retryable-patterns:ws-cached-empty-delta
+	ws-cached-empty-delta:codex-websocket-recovery
 	codex-websocket-recovery:responses-websocket-transport
 	responses-websocket-transport:provider-transport-indicator
 	slow-hook-tui-only:defer-threshold-compaction

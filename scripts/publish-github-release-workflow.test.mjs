@@ -114,7 +114,7 @@ test("upstream sync integrates and tests managed tool execution compatibility", 
 });
 
 test("sync includes Responses transport dependencies and offline gates before publication", () => {
-  const chain = ["codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
+  const chain = ["retry-non-retryable-patterns", "ws-cached-empty-delta", "codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
   for (const [index, name] of chain.entries()) {
     assertPatchIntegrated(syncScript, name);
     assert.ok(syncWorkflowText.includes(`refs/heads/patch/${name}:refs/remotes/origin/patch/${name}`));
@@ -131,6 +131,7 @@ test("sync includes Responses transport dependencies and offline gates before pu
   assert.ok(gates >= 0 && token > gates && push > token);
   assert.match(steps[gates].run, /test\/openai-responses-websocket\.test\.ts/);
   assert.match(steps[gates].run, /test\/openai-responses-websocket-loopback\.test\.ts/);
+  assert.match(steps[gates].run, /test\/provider-transport-status\.test\.ts/);
   assert.match(steps[gates].run, /test\/transport-status\.test\.ts/);
   assert.match(steps[gates].run, /test\/interactive-transport-status\.test\.ts/);
   assert.match(steps[token].env.PUSH_TOKEN, /secrets\.SYNC_WORKFLOW_TOKEN/);

@@ -337,37 +337,42 @@ test("--print-inputs and --print-marker resolve current refs from a source repo"
 	}
 });
 
-test("Codex recovery applies only its delta after the retry-patterns prerequisite", () => {
+test("Codex recovery applies only its delta after retry and cache prerequisites", () => {
 	const fixture = buildFixture();
 	const patterns = fixture.file("retry-policy.txt", "terminal-patterns\n", "patterns", "patch/retry-non-retryable-patterns");
-	const codex = fixture.file("retry-policy.txt", "terminal-patterns\ncodex-recovery\n", "codex", "patch/codex-websocket-recovery", "patch/retry-non-retryable-patterns");
+	const cached = fixture.file("retry-policy.txt", "terminal-patterns\nempty-delta\n", "cached", "patch/ws-cached-empty-delta", "patch/retry-non-retryable-patterns");
+	const codex = fixture.file("retry-policy.txt", "terminal-patterns\nempty-delta\ncodex-recovery\n", "codex", "patch/codex-websocket-recovery", "patch/ws-cached-empty-delta");
 	const { target } = replay(fixture, [
 		"--upstream", fixture.upstream,
 		"--ci", fixture.ci,
 		"--patch", `retry-non-retryable-patterns=${patterns}`,
+		"--patch", `ws-cached-empty-delta=${cached}`,
 		"--patch", `codex-websocket-recovery=${codex}`,
 	]);
 	try {
-		assert.equal(readFileSync(join(target, "retry-policy.txt"), "utf8"), "terminal-patterns\ncodex-recovery\n");
+		assert.equal(readFileSync(join(target, "retry-policy.txt"), "utf8"), "terminal-patterns\nempty-delta\ncodex-recovery\n");
 		const subjects = log(target);
-		assert.ok(subjects.indexOf("merge patch/retry-non-retryable-patterns branch") < subjects.indexOf("merge patch/codex-websocket-recovery branch"));
+		assert.ok(subjects.indexOf("merge patch/retry-non-retryable-patterns branch") < subjects.indexOf("merge patch/ws-cached-empty-delta branch"));
+		assert.ok(subjects.indexOf("merge patch/ws-cached-empty-delta branch") < subjects.indexOf("merge patch/codex-websocket-recovery branch"));
 	} finally {
 		cleanup(fixture, target);
 	}
 });
 
-test("Codex recovery rejects a tip without its retry-patterns predecessor", () => {
+test("Codex recovery rejects a tip that skips its cache predecessor", () => {
 	const fixture = buildFixture();
 	const patterns = fixture.file("retry-policy.txt", "terminal-patterns\n", "patterns", "patch/retry-non-retryable-patterns");
-	const codex = fixture.file("codex.txt", "codex\n", "codex", "patch/codex-websocket-recovery");
+	const cached = fixture.file("cached.txt", "empty-delta\n", "cached", "patch/ws-cached-empty-delta", "patch/retry-non-retryable-patterns");
+	const codex = fixture.file("codex.txt", "codex\n", "codex", "patch/codex-websocket-recovery", "patch/retry-non-retryable-patterns");
 	const { target, out } = replay(fixture, [
 		"--upstream", fixture.upstream,
 		"--ci", fixture.ci,
 		"--patch", `retry-non-retryable-patterns=${patterns}`,
+		"--patch", `ws-cached-empty-delta=${cached}`,
 		"--patch", `codex-websocket-recovery=${codex}`,
 	], { expectFail: true });
 	try {
-		assert.match(out, /patch\/codex-websocket-recovery must descend from patch\/retry-non-retryable-patterns/);
+		assert.match(out, /patch\/codex-websocket-recovery must descend from patch\/ws-cached-empty-delta/);
 	} finally {
 		cleanup(fixture, target);
 	}
@@ -375,7 +380,7 @@ test("Codex recovery rejects a tip without its retry-patterns predecessor", () =
 
 test("Responses transport and indicator preserve their predecessor deltas", () => {
 	const fixture = buildFixture();
-	const names = ["codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
+	const names = ["retry-non-retryable-patterns", "ws-cached-empty-delta", "codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
 	let predecessor = "upstream-main";
 	let content = "";
 	const args = ["--upstream", fixture.upstream, "--ci", fixture.ci];
@@ -489,6 +494,7 @@ for (const [ancestor, descendant] of [
 	["defer-threshold-compaction", "startup-submit-readiness"],
 	["startup-submit-readiness", "cold-start-retry"],
 	["cold-start-retry", "message-origin"],
+	["retry-non-retryable-patterns", "ws-cached-empty-delta"],
 	["codex-websocket-recovery", "responses-websocket-transport"],
 	["responses-websocket-transport", "provider-transport-indicator"],
 ]) {

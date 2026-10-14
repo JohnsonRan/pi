@@ -220,6 +220,7 @@ jobs:
               test/openai-responses-compat.test.ts \
               test/openai-responses-websocket.test.ts \
               test/openai-responses-websocket-loopback.test.ts \
+              test/provider-transport-status.test.ts \
               test/openai-codex-websocket-lazy.test.ts \
               test/openai-codex-websocket-recovery.test.ts \
               test/openai-codex-stream.test.ts \
