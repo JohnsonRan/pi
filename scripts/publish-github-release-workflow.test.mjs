@@ -130,6 +130,8 @@ test("sync includes Responses transport dependencies and offline gates before pu
   const push = steps.findIndex((step) => step.name === "Push rebuilt main");
   assert.ok(gates >= 0 && token > gates && push > token);
   assert.match(steps[gates].run, /test\/openai-responses-websocket\.test\.ts/);
+  assert.match(steps[gates].run, /test\/openai-responses-websocket-loopback\.test\.ts/);
+  assert.match(steps[gates].run, /test\/transport-status\.test\.ts/);
   assert.match(steps[gates].run, /test\/interactive-transport-status\.test\.ts/);
   assert.match(steps[token].env.PUSH_TOKEN, /secrets\.SYNC_WORKFLOW_TOKEN/);
   assert.match(steps[push].env.PUSH_TOKEN, /secrets\.SYNC_WORKFLOW_TOKEN/);

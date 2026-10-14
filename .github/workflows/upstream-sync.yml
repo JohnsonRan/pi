@@ -219,6 +219,7 @@ jobs:
               test/event-stream.test.ts \
               test/openai-responses-compat.test.ts \
               test/openai-responses-websocket.test.ts \
+              test/openai-responses-websocket-loopback.test.ts \
               test/openai-codex-websocket-lazy.test.ts \
               test/openai-codex-websocket-recovery.test.ts \
               test/openai-codex-stream.test.ts \
@@ -230,6 +231,7 @@ jobs:
             cd packages/agent
             node ../../node_modules/vitest/dist/cli.js --run \
               test/agent-loop.test.ts \
+              test/transport-status.test.ts \
               test/agent.test.ts \
               test/managed-tool-executions.test.ts \
               test/managed-tool-executions-esc-abort.test.ts
