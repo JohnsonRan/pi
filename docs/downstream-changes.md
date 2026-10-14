@@ -76,7 +76,8 @@ Manual and automatic retry of interrupted work, plus transport-level recovery.
 
 Presentation-only changes: layout, selectors, thinking display, startup screen.
 
-- Show the current model request's actual established protocol beside the default Working indicator, such as `Working(SSE)` or `Working(WS)`, updating when transport changes.
+- Show the current model request's actual established protocol beside the default Working indicator: `Working(SSE)`, `Working(WS/full)`, or `Working(WS/continuation)`.
+  - Responses WebSocket requests show `full` when sending full context and `continuation` only when the prepared request uses a validated `previous_response_id`. This follows the actual request, not the configured `websocket-cached` preference; first requests and reconnects show `full`. These labels do not claim a prompt-cache hit.
   - Use case: Tell whether a request uses WebSocket or has fallen back to SSE, including Claude and custom endpoints that use built-in adapters.
   - Limits: This describes only Pi's connection to its configured endpoint, not a proxy's upstream hop. Unknown custom streams have no suffix unless they report through the optional `onTransport` callback. Tool execution and retry backoff do not retain a prior request's protocol. Explicit extension working messages remain unchanged; protocol status is not saved in conversation history.
   - Patch branch: [`patch/provider-transport-indicator`](https://github.com/xz-dev/pi/tree/patch/provider-transport-indicator)
