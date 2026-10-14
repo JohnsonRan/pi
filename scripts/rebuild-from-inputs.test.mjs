@@ -373,6 +373,32 @@ test("Codex recovery rejects a tip without its retry-patterns predecessor", () =
 	}
 });
 
+test("Responses transport and indicator preserve their predecessor deltas", () => {
+	const fixture = buildFixture();
+	const names = ["codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
+	let predecessor = "upstream-main";
+	let content = "";
+	const args = ["--upstream", fixture.upstream, "--ci", fixture.ci];
+	for (const name of names) {
+		content += `${name}\n`;
+		const branch = `patch/${name}`;
+		const tip = fixture.file("transport.txt", content, name, branch, predecessor);
+		args.push("--patch", `${name}=${tip}`);
+		predecessor = branch;
+	}
+	const { target } = replay(fixture, args);
+	try {
+		assert.equal(readFileSync(join(target, "transport.txt"), "utf8"), content);
+		assert.deepEqual(log(target), [
+			"base", "merge ci branch",
+			...names.map((name) => `merge patch/${name} branch`),
+			"record upstream sync inputs (diagnostic subset)",
+		]);
+	} finally {
+		cleanup(fixture, target);
+	}
+});
+
 test("recovery prerequisites replay as ordered ranges while presentation remains independent", () => {
 	const fixture = buildFixture();
 	const names = ["slow-hook-tui-only", "defer-threshold-compaction", "startup-submit-readiness", "cold-start-retry", "message-origin"];
@@ -463,6 +489,8 @@ for (const [ancestor, descendant] of [
 	["defer-threshold-compaction", "startup-submit-readiness"],
 	["startup-submit-readiness", "cold-start-retry"],
 	["cold-start-retry", "message-origin"],
+	["codex-websocket-recovery", "responses-websocket-transport"],
+	["responses-websocket-transport", "provider-transport-indicator"],
 ]) {
 	test(`${descendant} rejects a tip missing ${ancestor}`, () => {
 		const fixture = buildFixture();
@@ -552,7 +580,7 @@ test("native workflow gate binds daemon metadata to build targets and keeps Darw
 	assert.ok(sync.includes("refs/heads/patch/env-native-test-fixtures:refs/remotes/origin/patch/env-native-test-fixtures"));
 	assert.ok(sync.includes("            env-native-test-fixtures \\\n"));
 	const order = readFileSync(SCRIPT, "utf8").match(/^PATCH_ORDER=\(\n([\s\S]*?)^\)/m)[1].trim().split(/\s+/);
-	assert.equal(order.length, 28);
+	assert.equal(order.length, 30);
 	assert.equal(order.at(-1), "env-native-test-fixtures");
 	assert.ok(readFileSync(join(ROOT, "docs/downstream-changes.md"), "utf8").includes("patch/env-native-test-fixtures"));
 });

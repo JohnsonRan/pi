@@ -117,6 +117,8 @@ PATCH_ORDER=(
 	slow-hook-tui-only
 	ws-cached-empty-delta
 	codex-websocket-recovery
+	responses-websocket-transport
+	provider-transport-indicator
 	model-selector-refresh-selection
 	ai-drop-empty-messages
 	quarantine-auth-storage-flake
@@ -147,6 +149,8 @@ CHAIN_EDGES=(
 	esc-abort:manual-retry
 	manual-retry:slow-hook-tui-only
 	retry-non-retryable-patterns:codex-websocket-recovery
+	codex-websocket-recovery:responses-websocket-transport
+	responses-websocket-transport:provider-transport-indicator
 	slow-hook-tui-only:defer-threshold-compaction
 	defer-threshold-compaction:startup-submit-readiness
 	startup-submit-readiness:cold-start-retry

@@ -113,6 +113,30 @@ test("upstream sync integrates and tests managed tool execution compatibility", 
   assert.match(readFileSync(join(ROOT, "MAINTAIN.md"), "utf8"), /declared ancestry edges only where a descendant's range truly depends on the predecessor/);
 });
 
+test("sync includes Responses transport dependencies and offline gates before publication", () => {
+  const chain = ["codex-websocket-recovery", "responses-websocket-transport", "provider-transport-indicator"];
+  for (const [index, name] of chain.entries()) {
+    assertPatchIntegrated(syncScript, name);
+    assert.ok(syncWorkflowText.includes(`refs/heads/patch/${name}:refs/remotes/origin/patch/${name}`));
+    assert.ok(syncWorkflowText.includes(`            ${name} \\\n`));
+    if (index) {
+      assertChainEdge(syncScript, chain[index - 1], name);
+      assert.ok(orderBlock(syncScript).indexOf(chain[index - 1]) < orderBlock(syncScript).indexOf(name));
+    }
+  }
+  const steps = syncWorkflow.jobs["sync-main-with-squash-branches"].steps;
+  const gates = steps.findIndex((step) => step.name === "Run focused integration tests");
+  const token = steps.findIndex((step) => step.name === "Require sync workflow token");
+  const push = steps.findIndex((step) => step.name === "Push rebuilt main");
+  assert.ok(gates >= 0 && token > gates && push > token);
+  assert.match(steps[gates].run, /test\/openai-responses-websocket\.test\.ts/);
+  assert.match(steps[gates].run, /test\/interactive-transport-status\.test\.ts/);
+  assert.match(steps[token].env.PUSH_TOKEN, /secrets\.SYNC_WORKFLOW_TOKEN/);
+  assert.match(steps[push].env.PUSH_TOKEN, /secrets\.SYNC_WORKFLOW_TOKEN/);
+  assert.match(steps[push].run, /git push --force-with-lease=.*origin HEAD:main/);
+  assert.ok(workflow.on.push.branches.includes("main"));
+});
+
 test("upstream sync requires formatter-stable rebuilt sources", () => {
   assert.match(syncWorkflowText, /status="\$\(git status --porcelain=v1 --untracked-files=all\)"/);
   assert.match(syncWorkflowText, /::error::Check mutated rebuilt main/);
