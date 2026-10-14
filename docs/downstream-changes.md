@@ -52,6 +52,12 @@ Manual and automatic retry of interrupted work, plus transport-level recovery.
   - Extensions can still inspect/reset session recovery state through `getOpenAICodexWebSocketDebugStatsLazy(sessionId)` and `resetOpenAICodexWebSocketDebugStatsLazy(sessionId?)` from `@earendil-works/pi-ai/compat` (or `pi-ai` in the extension runtime). Reset also clears counters; omitting the ID resets all sessions.
   - Details: [Network and retries](../packages/coding-agent/docs/settings.md#network-and-retries)
   - Patch branch: [`patch/codex-websocket-recovery`](https://github.com/xz-dev/pi/tree/patch/codex-websocket-recovery)
+- Use cached WebSocket continuations for ordinary OpenAI Responses, including API-key authentication, Sign in with ChatGPT, and custom compatible endpoints.
+  - `auto` tries WebSocket first for all `openai-responses` endpoints and uses the same bounded recovery and SSE cooldown policy as Codex. Unsupported proxies may incur connection attempts before fallback; choose `sse` to avoid them. Explicit WebSocket modes never silently downgrade.
+  - Connections and continuation state are isolated by endpoint and authentication. A dropped connection is rebuilt with full local context, then subsequent successful requests can send only new input. This does not preserve the old connection's server-side cache or guarantee prompt-cache hits.
+  - Use case: Reduce repeated context uploads in tool loops while recovering from transient socket failures without restarting Pi.
+  - Limits: New ChatGPT sign-in tokens use the public Responses endpoint, not the legacy Codex backend. Custom gateways must support the Responses WebSocket protocol; a Chat Completions-compatible endpoint alone is not sufficient.
+  - Patch branch: [`patch/responses-websocket-transport`](https://github.com/xz-dev/pi/tree/patch/responses-websocket-transport)
 - Allow `settings.retry.nonRetryableErrorPatterns` to fail-fast on gateway-specific terminal quota/limit error messages without expanding the built-in retry classifier.
   - Use case: Stop retrying when a gateway returns a known terminal quota or limit message.
   - Patch branch: [`patch/retry-non-retryable-patterns`](https://github.com/xz-dev/pi/tree/patch/retry-non-retryable-patterns)
@@ -70,6 +76,10 @@ Manual and automatic retry of interrupted work, plus transport-level recovery.
 
 Presentation-only changes: layout, selectors, thinking display, startup screen.
 
+- Show the current model request's actual established protocol beside the default Working indicator, such as `Working(SSE)` or `Working(WS)`, updating when transport changes.
+  - Use case: Tell whether a request uses WebSocket or has fallen back to SSE, including Claude and custom endpoints that use built-in adapters.
+  - Limits: This describes only Pi's connection to its configured endpoint, not a proxy's upstream hop. Unknown custom streams have no suffix unless they report through the optional `onTransport` callback. Tool execution and retry backoff do not retain a prior request's protocol. Explicit extension working messages remain unchanged; protocol status is not saved in conversation history.
+  - Patch branch: [`patch/provider-transport-indicator`](https://github.com/xz-dev/pi/tree/patch/provider-transport-indicator)
 - Preview thinking in one scrolling line by default, following the newest text without growing the transcript. Preview rows render Markdown styles and retain the same tail when thinking ends. When earlier content is hidden, `… (N chars)` reports the omitted visible characters; narrow terminals can reduce the hint to `…`. `Ctrl+T` cycles preview, full text, and static-folded styles; `Ctrl+O` also expands or folds thinking with tool output.
   - Use case: Keep the latest reasoning next to the following tool call or answer, and open the full reasoning only when needed.
   - Limits: Fullscreen mouse clicks toggle individual thinking blocks during or after streaming, and their state survives completion. A later global display action reapplies its state. Regular terminal mode uses keyboard controls and leaves mouse selection to the terminal. This changes presentation, not the model's thinking effort or saved reasoning.

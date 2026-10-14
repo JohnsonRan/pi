@@ -33,7 +33,8 @@ Features:
 - Single executable, no Node.js needed (JIT)
 - FreeBSD support
 - Auto-retry interrupted sessions (`/retry`, also automatic on startup)
-- WebSocket reconnect for Codex, keeps cached context
+- WebSocket recovery and incremental context for OpenAI Responses and Codex
+- Actual connection protocol beside Working (`SSE`, `WS`, or another reported protocol)
 - Detach long tool calls, keep chatting (`tool_task`)
 - Thinking shown as one preview line (`Ctrl+T` to expand)
 - Smaller input dock when reading history
