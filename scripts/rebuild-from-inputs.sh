@@ -121,7 +121,6 @@ PATCH_ORDER=(
 	provider-transport-indicator
 	model-selector-refresh-selection
 	ai-drop-empty-messages
-	mimo-thinking-toggle-test
 	quarantine-auth-storage-flake
 	env-overrides
 	freebsd-support

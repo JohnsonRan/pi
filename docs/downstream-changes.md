@@ -154,8 +154,6 @@ Extension tooling, skills, and subprocess environment.
 
 Patches with no direct user-facing surface: test stability, fork CI plumbing, benchmark bounds.
 
-- Align the Xiaomi MiMo tool-call replay test with upstream's thinking on/off contract: retain the empty reasoning replay and enabled-thinking checks, and require `reasoning_effort` to be absent.
-  - Patch branch: [`patch/mimo-thinking-toggle-test`](https://github.com/xz-dev/pi/tree/patch/mimo-thinking-toggle-test)
 
 - Diagnose native environment tests with an independent build-target architecture oracle, retained-output tool fixtures, per-stream output equality, real foreground-job readiness and monotonic cold listing cancellation/recovery observations.
   - Limits: Listing setup preserves all 10,100 entries and has its own measured 60000ms bound; the cold daemon request, actual aborted error and both same-connection recoveries retain their separate 5000ms operation deadline. Foreground readiness retains 100 polls at 20ms and the 20000ms case deadline. Independent stdout/stderr arrival order is not an equality oracle; exact content per stream, successful tool results, missing-file rejection and nonzero exit remain checked. Darwin wrong-target JSON exposes actual child status and selected failures only after strict equality-rejection checks. Observations do not prove REQUEST/CANCEL transmission or child exit.
@@ -173,5 +171,6 @@ The Esc and manual-retry patches share [`patch/agent-run-failure-seam`](https://
 
 ## Removed patches
 
+- `patch/mimo-thinking-toggle-test` is no longer integrated: upstream now contains the identical Xiaomi replay assertion correction. The source branch is retained; the replay and thinking-toggle checks remain enabled upstream.
 - Provider-transparent Responses remote compaction and its dependent pre-provider compaction patch have been removed, and both source branches have been permanently deleted. Classic compaction remains the default path. A third-party extension such as [`@ogulcancelik/pi-codex-compaction`](https://github.com/ogulcancelik/pi-extensions) can provide Codex-native remote compaction without adding provider-specific behavior to core.
 - The remote-client run-end wait patch has been retired: upstream now waits on `run_end`/`run_suspend` operation boundaries before resolving an accepted prompt response (`operationBoundaries`/`boundaryWaiters` in `packages/coding-agent/src/experimental/client.ts`), which covers the same transcript-lifecycle guarantee without a timeout heuristic. The source branch is kept as `retired/remote-client-run-end-wait`.
